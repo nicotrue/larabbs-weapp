@@ -1,29 +1,36 @@
 <style lang="less">
   @import "style/weui.less";
-  page{
-  background-color: #f8f8f8;
+
+  page {
+    background-color: #f8f8f8;
     font-size: 16px;
   }
-  .page_hd{
+
+  .page_hd {
     padding: 40px;
   }
-  .page_bd{
+
+  .page_bd {
     padding-bottom: 40px;
   }
-  .page_bd_spacing{
+
+  .page_bd_spacing {
     padding-bottom: 10px;
     text-align: center;
   }
-  .page_ft{
+
+  .page_ft {
     padding-bottom: 10px;
     text-align: center;
   }
-  .page_title{
+
+  .page_title {
     text-align: center;
     font-size: 20px;
     font-weight: 400;
   }
-  .page_desc{
+
+  .page_desc {
     margin-top: 5px;
     color: #888888;
     text-align: center;
@@ -34,12 +41,14 @@
 <script>
   import wepy from 'wepy'
   import 'wepy-async-function'
+  import api from '@/utils/api'
 
   export default class extends wepy.app {
     config = {
       pages: [
         'pages/index',
-        'pages/user',
+        'pages/users/me',
+        'pages/users/edit',
         'pages/auth/login',
         'pages/auth/register'
       ],
@@ -56,7 +65,7 @@
           iconPath: 'images/index.png',
           selectedIconPath: 'images/index_selected.png'
         }, {
-          pagePath: 'pages/user',
+          pagePath: 'pages/users/me',
           text: '我的',
           iconPath: 'images/user.png',
           selectedIconPath: 'images/user_selected.png'
@@ -66,7 +75,7 @@
       }
     }
 
-    constructor () {
+    constructor() {
       super()
       this.use('requestfix')
       this.use('promisify')
@@ -76,6 +85,41 @@
       wepy.login().then(res => {
         console.log('login: ', res)
       })
+    }
+
+    // 获取当前登入用户信息
+    async getCurrentUser() {
+      // 如果用户未登入
+      if (!this.checkLogin) {
+        return null
+      }
+      // 从缓存中获取用户信息
+      let user = wepy.getStorageSync('user')
+
+      try {
+        // 登入了但是缓存中没有，请求接口信息
+        if (!user) {
+          let userResponse = await api.authRequest('user')
+          // 状态码为200表示请求成功
+          if (userResponse.statusCode === 200) {
+            user = userResponse.data
+            wepy.setStorageSync('user', user)
+          }
+        }
+      } catch (err) {
+        console.log(err)
+        wepy.showModal({
+          title: '提示',
+          content: '服务器错误，请联系管理员'
+        })
+      }
+
+      return user
+    }
+
+    // 用户是否已经登入
+    checkLogin() {
+      return (wepy.getStorageSync('access_token') !== '')
     }
   }
 </script>
