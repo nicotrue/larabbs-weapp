@@ -87,10 +87,38 @@
       this.use('promisify')
     }
 
+    globalData = {
+      refreshPages: [],
+      unreadCount: 0
+    }
+
     onLaunch() {
+      // 小程序启动，调用一起获取未读消息数
+      this.updateUnreadCount()
+      // 每隔60秒，调用一起获取未读消息数
+      setInterval(() => {
+        this.upadteUnreadCount()
+      }, 60000)
+
       wepy.login().then(res => {
         console.log('login: ', res)
       })
+    }
+
+    // 获取未读消息数
+    async updateUnreadCount() {
+      // 未登入不需要请求
+      if (!this.checkLogin()) {
+        return
+      }
+
+      // 请求消息统计接口
+      let notificationResponse = await api.authRequest('user/notifications/stats', false)
+
+      // 请求成功赋值全局变量unreadCount
+      if (notificationResponse.statusCode === 200) {
+        this.globalData.unreadCount = notificationResponse.data.unread_count
+      }
     }
 
     // 获取当前登入用户信息
@@ -128,10 +156,7 @@
       return (wepy.getStorageSync('access_token') !== '')
     }
 
-    globalData = {
-      refreshPages: []
-    }
-    checkRefreshPages (route, callback) {
+    checkRefreshPages(route, callback) {
       let refreshIndex = this.globalData.refreshPages.indexOf(route)
       if (refreshIndex === -1) {
         return
